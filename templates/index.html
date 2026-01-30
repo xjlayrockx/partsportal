@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parts Manual Viewer - Bad Boy Mowers</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bb-orange: #f26522;
+            --bb-orange-hover: #ff7a33;
+            --bb-orange-glow: rgba(242, 101, 34, 0.35);
+            --bb-black: #1a1a1a;
+            --bb-dark: #0d0d0d;
+            --bb-gray: #2a2a2a;
+            --bb-gray-light: #3a3a3a;
+            --bb-text: #ffffff;
+            --bb-text-muted: #888888;
+            --bb-success: #4caf50;
+            --bb-danger: #f44336;
+            --bb-warning: #ff9800;
+            --bb-surface: #1e1e1e;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bb-dark);
+            color: var(--bb-text);
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* ── Header ─────────────────────────────────── */
+        .header {
+            background: var(--bb-black);
+            padding: 8px 16px;
+            border-bottom: 3px solid var(--bb-orange);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+        .logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 20px;
+            letter-spacing: 2px;
+            color: var(--bb-orange);
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .logo span { color: var(--bb-text); }
+        .header-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 16px;
+            letter-spacing: 2px;
+            color: var(--bb-text-muted);
+        }
+        .search-bar {
+            flex: 1;
+            max-width: 400px;
+            margin-left: auto;
+            position: relative;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 6px 12px 6px 32px;
+            border-radius: 4px;
+            border: 1px solid var(--bb-gray-light);
+            background: var(--bb-gray);
+            color: var(--bb-text);
+            font-size: 13px;
+            outline: none;
+        }
+        .search-bar input:focus {
+            border-color: var(--bb-orange);
+        }
+        .search-bar .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--bb-text-muted);
+            font-size: 13px;
+        }
+        .search-results-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bb-black);
+            border: 1px solid var(--bb-gray-light);
+            border-radius: 0 0 4px 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 200;
+            display: none;
+        }
+        .search-results-dropdown.visible { display: block; }
+        .search-result-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--bb-gray);
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .search-result-item:hover { background: var(--bb-gray); }
+        .search-result-item .sr-part {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--bb-orange);
+            font-weight: 600;
+        }
+        .search-result-item .sr-desc { color: var(--bb-text); }
+        .search-result-item .sr-meta { color: var(--bb-text-muted); font-size: 11px; }
+        .back-btn {
+            background: none;
+            border: 1px solid var(--bb-gray-light);
+            color: var(--bb-text);
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: none;
+        }
+        .back-btn:hover { border-color: var(--bb-orange); color: var(--bb-orange); }
+
+        /* ── Main Content ───────────────────────────── */
+        .main { flex: 1; overflow: hidden; }
+
+        /* ── View: Library ──────────────────────────── */
+        .library-view {
+            height: 100%;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .upload-zone {
+            border: 2px dashed var(--bb-gray-light);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            margin-bottom: 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--bb-orange);
+            background: rgba(242, 101, 34, 0.05);
+        }
+        .upload-zone h3 {
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 1px;
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+        .upload-zone p { color: var(--bb-text-muted); font-size: 13px; }
+        .upload-zone input { display: none; }
+
+        /* Processing bar */
+        .processing-card {
+            background: var(--bb-black);
+            border: 1px solid var(--bb-gray);
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            display: none;
+        }
+        .processing-card.active { display: block; }
+        .processing-card h4 {
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        .progress-bar-container {
+            background: var(--bb-gray);
+            border-radius: 4px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--bb-orange);
+            width: 0%;
+            transition: width 0.3s;
+            border-radius: 4px;
+        }
+        .processing-step {
+            font-size: 12px;
+            color: var(--bb-text-muted);
+        }
+        .processing-step .step-name { color: var(--bb-orange); }
+
+        /* Manual cards grid */
+        .section-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 18px;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            color: var(--bb-text-muted);
+        }
+        .manual-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+        .manual-card {
+            background: var(--bb-black);
+            border: 1px solid var(--bb-gray);
+            border-radius: 6px;
+            padding: 16px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            position: relative;
+        }
+        .manual-card:hover { border-color: var(--bb-orange); }
+        .manual-card h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            word-break: break-word;
+        }
+        .manual-card .mc-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 11px;
+            color: var(--bb-text-muted);
+        }
+        .manual-card .mc-stats span {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .manual-card .mc-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: var(--bb-text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .manual-card .mc-delete:hover {
+            color: var(--bb-danger);
+            background: rgba(244, 67, 54, 0.1);
+        }
+
+        /* ── View: Viewer ──────────────────────────── */
+        .viewer-view {
+            display: none;
+            height: 100%;
+        }
+        .viewer-view.active { display: flex; }
+
+        /* Left sidebar: sections */
+        .sidebar {
+            width: 220px;
+            background: var(--bb-black);
+            border-right: 1px solid var(--bb-gray);
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        .sidebar-header {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 14px;
+            letter-spacing: 1px;
+            padding: 12px;
+            color: var(--bb-text-muted);
+            border-bottom: 1px solid var(--bb-gray);
+        }
+        .section-list { list-style: none; }
+        .section-list li {
+            padding: 10px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--bb-gray);
+            transition: background 0.15s;
+        }
+        .section-list li:hover { background: var(--bb-gray); }
+        .section-list li.active {
+            background: var(--bb-gray);
+            border-left: 3px solid var(--bb-orange);
+            color: var(--bb-orange);
+        }
+        .section-list li .sl-count {
+            font-size: 10px;
+            color: var(--bb-text-muted);
+        }
+
+        /* Center: diagram */
+        .diagram-panel {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            background: var(--bb-surface);
+            cursor: grab;
+        }
+        .diagram-panel.grabbing { cursor: grabbing; }
+        .diagram-container {
+            position: absolute;
+            top: 0; left: 0;
+            transform-origin: 0 0;
+        }
+        .diagram-container img {
+            display: block;
+            max-width: none;
+        }
+        .diagram-container svg {
+            position: absolute;
+            top: 0; left: 0;
+            pointer-events: none;
+        }
+        .callout-circle {
+            pointer-events: all;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .callout-circle:hover { opacity: 1 !important; }
+
+        /* Callout tooltip */
+        .callout-tooltip {
+            position: fixed;
+            background: var(--bb-black);
+            border: 1px solid var(--bb-orange);
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 12px;
+            z-index: 300;
+            pointer-events: none;
+            display: none;
+            max-width: 280px;
+        }
+        .callout-tooltip .ct-item {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 16px;
+            color: var(--bb-orange);
+        }
+        .callout-tooltip .ct-part {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--bb-text);
+            font-size: 13px;
+        }
+        .callout-tooltip .ct-desc {
+            color: var(--bb-text-muted);
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        /* Right panel: parts table */
+        .parts-panel {
+            width: 340px;
+            background: var(--bb-black);
+            border-left: 1px solid var(--bb-gray);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .parts-panel-header {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 14px;
+            letter-spacing: 1px;
+            padding: 12px;
+            color: var(--bb-text-muted);
+            border-bottom: 1px solid var(--bb-gray);
+        }
+        .parts-table-wrap {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .parts-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        .parts-table th {
+            background: var(--bb-gray);
+            padding: 6px 8px;
+            text-align: left;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--bb-text-muted);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        .parts-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--bb-gray);
+        }
+        .parts-table tr {
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .parts-table tbody tr:hover { background: var(--bb-gray); }
+        .parts-table tbody tr.highlighted {
+            background: rgba(242, 101, 34, 0.15);
+            border-left: 2px solid var(--bb-orange);
+        }
+        .parts-table .col-item { width: 36px; text-align: center; }
+        .parts-table .col-qty { width: 30px; text-align: center; }
+        .parts-table .col-pn {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--bb-orange);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .parts-table .col-desc { color: var(--bb-text-muted); }
+
+        /* Zoom controls */
+        .zoom-controls {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            display: flex;
+            gap: 4px;
+            z-index: 50;
+        }
+        .zoom-btn {
+            background: var(--bb-black);
+            border: 1px solid var(--bb-gray-light);
+            color: var(--bb-text);
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .zoom-btn:hover { border-color: var(--bb-orange); color: var(--bb-orange); }
+        .zoom-level {
+            background: var(--bb-black);
+            border: 1px solid var(--bb-gray-light);
+            color: var(--bb-text-muted);
+            padding: 0 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Processing log panel */
+        .log-panel {
+            padding: 12px;
+            border-top: 1px solid var(--bb-gray);
+            font-size: 11px;
+        }
+        .log-panel .log-stat {
+            display: inline-block;
+            margin-right: 16px;
+            color: var(--bb-text-muted);
+        }
+        .log-panel .log-stat b {
+            color: var(--bb-text);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Empty state */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: var(--bb-text-muted);
+            font-size: 13px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bb-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--bb-gray-light); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--bb-text-muted); }
+    </style>
+</head>
+<body>
+<div class="app">
+    <!-- Header -->
+    <div class="header">
+        <div class="logo" onclick="showLibrary()">BAD BOY <span>MOWERS</span></div>
+        <div class="header-title">PARTS MANUAL VIEWER</div>
+        <button class="back-btn" id="backBtn" onclick="showLibrary()">Back to Library</button>
+        <div class="search-bar">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" id="searchInput" placeholder="Search part numbers or descriptions..." autocomplete="off">
+            <div class="search-results-dropdown" id="searchDropdown"></div>
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+        <!-- Library View -->
+        <div class="library-view" id="libraryView">
+            <!-- Upload -->
+            <div class="upload-zone" id="uploadZone">
+                <h3>Upload Parts Manual</h3>
+                <p>Drop a PDF here or click to browse</p>
+                <input type="file" id="fileInput" accept=".pdf">
+            </div>
+
+            <!-- Processing -->
+            <div class="processing-card" id="processingCard">
+                <h4>Processing Manual</h4>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progressBar"></div>
+                </div>
+                <div class="processing-step">
+                    Step <span id="stepNum">-</span>/7:
+                    <span class="step-name" id="stepName">-</span>
+                    &mdash; <span id="stepMsg">-</span>
+                </div>
+            </div>
+
+            <!-- Manuals grid -->
+            <div class="section-title">Processed Manuals</div>
+            <div class="manual-grid" id="manualGrid"></div>
+            <div class="empty-state" id="emptyState" style="display:none;">
+                No manuals processed yet. Upload a PDF to get started.
+            </div>
+        </div>
+
+        <!-- Viewer View -->
+        <div class="viewer-view" id="viewerView">
+            <!-- Left sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-header">SECTIONS</div>
+                <ul class="section-list" id="sectionList"></ul>
+                <div class="log-panel" id="logPanel"></div>
+            </div>
+
+            <!-- Center diagram -->
+            <div class="diagram-panel" id="diagramPanel">
+                <div class="diagram-container" id="diagramContainer">
+                    <img id="diagramImg" draggable="false">
+                    <svg id="calloutSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+                </div>
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="zoomIn()">+</button>
+                    <div class="zoom-level" id="zoomLevel">100%</div>
+                    <button class="zoom-btn" onclick="zoomOut()">&minus;</button>
+                    <button class="zoom-btn" onclick="zoomFit()" title="Fit to view">&#9634;</button>
+                </div>
+            </div>
+
+            <!-- Right parts table -->
+            <div class="parts-panel">
+                <div class="parts-panel-header">PARTS LIST</div>
+                <div class="parts-table-wrap">
+                    <table class="parts-table">
+                        <thead>
+                            <tr>
+                                <th class="col-item">#</th>
+                                <th class="col-qty">Qty</th>
+                                <th class="col-pn">Part Number</th>
+                                <th class="col-desc">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="partsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tooltip -->
+    <div class="callout-tooltip" id="calloutTooltip">
+        <div class="ct-item"></div>
+        <div class="ct-part"></div>
+        <div class="ct-desc"></div>
+    </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────
+let currentManual = null;   // manifest data
+let currentManualId = null;
+let currentSectionIdx = 0;
+let zoom = 1;
+let panX = 0, panY = 0;
+let isPanning = false;
+let panStartX = 0, panStartY = 0;
+let highlightedItem = null;
+let searchTimeout = null;
+
+// ── Elements ─────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const libraryView = $('libraryView');
+const viewerView = $('viewerView');
+const backBtn = $('backBtn');
+const uploadZone = $('uploadZone');
+const fileInput = $('fileInput');
+const processingCard = $('processingCard');
+const progressBar = $('progressBar');
+const manualGrid = $('manualGrid');
+const emptyState = $('emptyState');
+const sectionList = $('sectionList');
+const diagramPanel = $('diagramPanel');
+const diagramContainer = $('diagramContainer');
+const diagramImg = $('diagramImg');
+const calloutSvg = $('calloutSvg');
+const partsBody = $('partsBody');
+const tooltip = $('calloutTooltip');
+const searchInput = $('searchInput');
+const searchDropdown = $('searchDropdown');
+const logPanel = $('logPanel');
+
+// ── Navigation ───────────────────────────────────────────────────────
+function showLibrary() {
+    libraryView.style.display = '';
+    viewerView.classList.remove('active');
+    backBtn.style.display = 'none';
+    loadManuals();
+}
+
+function showViewer() {
+    libraryView.style.display = 'none';
+    viewerView.classList.add('active');
+    backBtn.style.display = '';
+}
+
+// ── Upload ───────────────────────────────────────────────────────────
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    uploadZone.classList.add('dragover');
+});
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) uploadFile(fileInput.files[0]);
+});
+
+async function uploadFile(file) {
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+        alert('Please upload a PDF file.');
+        return;
+    }
+    const form = new FormData();
+    form.append('file', file);
+
+    try {
+        const res = await fetch('/api/upload-manual', { method: 'POST', body: form });
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        pollProcessing(data.manual_id);
+    } catch (e) {
+        alert('Upload failed: ' + e.message);
+    }
+}
+
+function pollProcessing(manualId) {
+    processingCard.classList.add('active');
+    const poll = async () => {
+        try {
+            const res = await fetch(`/api/processing-status/${manualId}`);
+            const data = await res.json();
+            if (data.error && !data.done) {
+                processingCard.classList.remove('active');
+                alert('Processing error: ' + data.error);
+                return;
+            }
+            $('stepNum').textContent = data.step_number || '-';
+            $('stepName').textContent = data.step || '-';
+            $('stepMsg').textContent = data.message || '';
+            progressBar.style.width = (data.progress || 0) + '%';
+
+            if (data.done) {
+                processingCard.classList.remove('active');
+                if (data.error) {
+                    alert('Processing failed: ' + data.error);
+                } else {
+                    loadManuals();
+                }
+                return;
+            }
+            setTimeout(poll, 800);
+        } catch {
+            setTimeout(poll, 2000);
+        }
+    };
+    poll();
+}
+
+// ── Manuals List ─────────────────────────────────────────────────────
+async function loadManuals() {
+    try {
+        const res = await fetch('/api/manuals');
+        const manuals = await res.json();
+        manualGrid.innerHTML = '';
+        if (!manuals.length) {
+            emptyState.style.display = '';
+            return;
+        }
+        emptyState.style.display = 'none';
+        manuals.forEach(m => {
+            const card = document.createElement('div');
+            card.className = 'manual-card';
+            card.innerHTML = `
+                <h3>${esc(m.filename)}</h3>
+                <div class="mc-stats">
+                    <span>${m.total_pages} pages</span>
+                    <span>${m.section_count} sections</span>
+                    <span>${m.total_matched}/${m.total_callouts} matched</span>
+                </div>
+                <button class="mc-delete" onclick="event.stopPropagation(); deleteManual('${m.manual_id}')" title="Delete">&times;</button>
+            `;
+            card.addEventListener('click', () => openManual(m.manual_id));
+            manualGrid.appendChild(card);
+        });
+    } catch (e) {
+        console.error('Failed to load manuals:', e);
+    }
+}
+
+async function deleteManual(manualId) {
+    if (!confirm('Delete this manual?')) return;
+    await fetch(`/api/manual/${manualId}`, { method: 'DELETE' });
+    loadManuals();
+}
+
+// ── Open Manual ──────────────────────────────────────────────────────
+async function openManual(manualId) {
+    try {
+        const res = await fetch(`/api/manual/${manualId}`);
+        currentManual = await res.json();
+        currentManualId = manualId;
+        currentSectionIdx = 0;
+        buildSidebar();
+        renderSection(0);
+        renderLog();
+        showViewer();
+    } catch (e) {
+        alert('Failed to load manual: ' + e.message);
+    }
+}
+
+function buildSidebar() {
+    sectionList.innerHTML = '';
+    currentManual.sections.forEach((sec, i) => {
+        const li = document.createElement('li');
+        li.textContent = sec.title;
+        const count = document.createElement('div');
+        count.className = 'sl-count';
+        count.textContent = `${(sec.callouts || []).length} callouts / ${(sec.parts_table || []).length} parts`;
+        li.appendChild(count);
+        li.addEventListener('click', () => renderSection(i));
+        sectionList.appendChild(li);
+    });
+}
+
+function renderLog() {
+    const log = currentManual.processing_log || {};
+    logPanel.innerHTML = `
+        <div class="log-stat">Detected: <b>${log.total_callouts_detected || 0}</b></div>
+        <div class="log-stat">OCR: <b>${log.total_ocr_success || 0}</b></div>
+        <div class="log-stat">Matched: <b>${log.total_matched || 0}</b></div>
+    `;
+}
+
+// ── Render Section ───────────────────────────────────────────────────
+function renderSection(idx) {
+    currentSectionIdx = idx;
+    const sec = currentManual.sections[idx];
+
+    // Update sidebar active
+    sectionList.querySelectorAll('li').forEach((li, i) => {
+        li.classList.toggle('active', i === idx);
+    });
+
+    // Load diagram image
+    const imgUrl = `/api/manual/${currentManualId}/image/${sec.diagram_image}`;
+    diagramImg.onload = () => {
+        calloutSvg.setAttribute('width', diagramImg.naturalWidth);
+        calloutSvg.setAttribute('height', diagramImg.naturalHeight);
+        renderCallouts(sec);
+        zoomFit();
+    };
+    diagramImg.src = imgUrl;
+
+    // Build parts table
+    renderPartsTable(sec);
+    highlightedItem = null;
+}
+
+function renderCallouts(sec) {
+    calloutSvg.innerHTML = '';
+    const callouts = sec.callouts || [];
+
+    callouts.forEach(co => {
+        const cx = co.bbox.x + co.bbox.w / 2;
+        const cy = co.bbox.y + co.bbox.h / 2;
+        const r = Math.max(co.bbox.w, co.bbox.h) / 2 + 4;
+
+        // Outer glow
+        const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        glow.setAttribute('cx', cx);
+        glow.setAttribute('cy', cy);
+        glow.setAttribute('r', r + 6);
+        glow.setAttribute('fill', 'none');
+        glow.setAttribute('stroke', 'rgba(242,101,34,0.3)');
+        glow.setAttribute('stroke-width', '4');
+        glow.setAttribute('class', 'callout-glow');
+        glow.setAttribute('data-item', co.item_number);
+        glow.style.display = 'none';
+        calloutSvg.appendChild(glow);
+
+        // Main circle
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', cx);
+        circle.setAttribute('cy', cy);
+        circle.setAttribute('r', r);
+        circle.setAttribute('fill', 'rgba(242, 101, 34, 0.2)');
+        circle.setAttribute('stroke', 'rgba(242, 101, 34, 0.6)');
+        circle.setAttribute('stroke-width', '2');
+        circle.setAttribute('class', 'callout-circle');
+        circle.setAttribute('data-item', co.item_number);
+        circle.style.opacity = '0.6';
+
+        circle.addEventListener('mouseenter', e => {
+            circle.style.opacity = '1';
+            circle.setAttribute('fill', 'rgba(242, 101, 34, 0.35)');
+            circle.setAttribute('stroke', 'var(--bb-orange)');
+            showTooltip(e, co);
+        });
+        circle.addEventListener('mouseleave', () => {
+            if (highlightedItem !== co.item_number) {
+                circle.style.opacity = '0.6';
+                circle.setAttribute('fill', 'rgba(242, 101, 34, 0.2)');
+                circle.setAttribute('stroke', 'rgba(242, 101, 34, 0.6)');
+            }
+            hideTooltip();
+        });
+        circle.addEventListener('mousemove', e => moveTooltip(e));
+        circle.addEventListener('click', () => selectCallout(co.item_number));
+
+        calloutSvg.appendChild(circle);
+    });
+}
+
+function renderPartsTable(sec) {
+    partsBody.innerHTML = '';
+    const parts = sec.parts_table || [];
+    parts.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-item', p.item);
+        tr.innerHTML = `
+            <td class="col-item">${p.item}</td>
+            <td class="col-qty">${p.quantity}</td>
+            <td class="col-pn">${esc(p.part_number)}</td>
+            <td class="col-desc">${esc(p.description)}</td>
+        `;
+        tr.addEventListener('click', () => selectCallout(p.item));
+        tr.addEventListener('mouseenter', () => highlightCalloutCircle(p.item, true));
+        tr.addEventListener('mouseleave', () => {
+            if (highlightedItem !== p.item) highlightCalloutCircle(p.item, false);
+        });
+        partsBody.appendChild(tr);
+    });
+}
+
+// ── Callout / Table Interaction ──────────────────────────────────────
+function selectCallout(itemNum) {
+    highlightedItem = itemNum;
+
+    // Highlight table row
+    partsBody.querySelectorAll('tr').forEach(tr => {
+        tr.classList.toggle('highlighted', parseInt(tr.dataset.item) === itemNum);
+    });
+    // Scroll table row into view
+    const row = partsBody.querySelector(`tr[data-item="${itemNum}"]`);
+    if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+    // Highlight callout circle
+    calloutSvg.querySelectorAll('.callout-circle').forEach(c => {
+        if (parseInt(c.dataset.item) === itemNum) {
+            c.style.opacity = '1';
+            c.setAttribute('fill', 'rgba(242, 101, 34, 0.4)');
+            c.setAttribute('stroke', 'var(--bb-orange)');
+        } else {
+            c.style.opacity = '0.4';
+            c.setAttribute('fill', 'rgba(242, 101, 34, 0.1)');
+            c.setAttribute('stroke', 'rgba(242, 101, 34, 0.4)');
+        }
+    });
+
+    // Show glow on selected
+    calloutSvg.querySelectorAll('.callout-glow').forEach(g => {
+        g.style.display = parseInt(g.dataset.item) === itemNum ? '' : 'none';
+    });
+}
+
+function highlightCalloutCircle(itemNum, on) {
+    calloutSvg.querySelectorAll(`.callout-circle[data-item="${itemNum}"]`).forEach(c => {
+        if (on) {
+            c.style.opacity = '1';
+            c.setAttribute('fill', 'rgba(242, 101, 34, 0.35)');
+            c.setAttribute('stroke', 'var(--bb-orange)');
+        } else {
+            c.style.opacity = '0.6';
+            c.setAttribute('fill', 'rgba(242, 101, 34, 0.2)');
+            c.setAttribute('stroke', 'rgba(242, 101, 34, 0.6)');
+        }
+    });
+}
+
+// ── Tooltip ──────────────────────────────────────────────────────────
+function showTooltip(e, co) {
+    tooltip.querySelector('.ct-item').textContent = `Item #${co.item_number}`;
+    tooltip.querySelector('.ct-part').textContent = co.part_number || 'No match';
+    tooltip.querySelector('.ct-desc').textContent = co.description || '';
+    tooltip.style.display = 'block';
+    moveTooltip(e);
+}
+function moveTooltip(e) {
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top = (e.clientY + 14) + 'px';
+}
+function hideTooltip() { tooltip.style.display = 'none'; }
+
+// ── Zoom & Pan ───────────────────────────────────────────────────────
+function applyTransform() {
+    diagramContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+    $('zoomLevel').textContent = Math.round(zoom * 100) + '%';
+}
+function zoomIn() { zoom = Math.min(zoom * 1.25, 5); applyTransform(); }
+function zoomOut() { zoom = Math.max(zoom / 1.25, 0.1); applyTransform(); }
+function zoomFit() {
+    const pw = diagramPanel.clientWidth;
+    const ph = diagramPanel.clientHeight;
+    const iw = diagramImg.naturalWidth;
+    const ih = diagramImg.naturalHeight;
+    if (!iw || !ih) return;
+    zoom = Math.min(pw / iw, ph / ih, 1);
+    panX = (pw - iw * zoom) / 2;
+    panY = (ph - ih * zoom) / 2;
+    applyTransform();
+}
+
+diagramPanel.addEventListener('wheel', e => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.1 : 0.9;
+    const rect = diagramPanel.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const newZoom = Math.max(0.1, Math.min(5, zoom * factor));
+    panX = mx - (mx - panX) * (newZoom / zoom);
+    panY = my - (my - panY) * (newZoom / zoom);
+    zoom = newZoom;
+    applyTransform();
+}, { passive: false });
+
+diagramPanel.addEventListener('mousedown', e => {
+    if (e.target.classList.contains('callout-circle')) return;
+    isPanning = true;
+    panStartX = e.clientX - panX;
+    panStartY = e.clientY - panY;
+    diagramPanel.classList.add('grabbing');
+});
+window.addEventListener('mousemove', e => {
+    if (!isPanning) return;
+    panX = e.clientX - panStartX;
+    panY = e.clientY - panStartY;
+    applyTransform();
+});
+window.addEventListener('mouseup', () => {
+    isPanning = false;
+    diagramPanel.classList.remove('grabbing');
+});
+
+// ── Search ───────────────────────────────────────────────────────────
+searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    const q = searchInput.value.trim();
+    if (q.length < 2) { searchDropdown.classList.remove('visible'); return; }
+    searchTimeout = setTimeout(() => doSearch(q), 300);
+});
+searchInput.addEventListener('blur', () => {
+    setTimeout(() => searchDropdown.classList.remove('visible'), 200);
+});
+searchInput.addEventListener('focus', () => {
+    if (searchDropdown.children.length) searchDropdown.classList.add('visible');
+});
+
+async function doSearch(q) {
+    try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const results = await res.json();
+        searchDropdown.innerHTML = '';
+        if (!results.length) {
+            searchDropdown.innerHTML = '<div class="search-result-item"><span class="sr-desc">No results found</span></div>';
+        } else {
+            results.forEach(r => {
+                const div = document.createElement('div');
+                div.className = 'search-result-item';
+                div.innerHTML = `
+                    <span class="sr-part">${esc(r.part_number)}</span>
+                    <span class="sr-desc">${esc(r.description)}</span><br>
+                    <span class="sr-meta">${esc(r.section_title)} &mdash; ${esc(r.manual_name)}</span>
+                `;
+                div.addEventListener('mousedown', () => {
+                    searchDropdown.classList.remove('visible');
+                    searchInput.value = '';
+                    jumpToResult(r);
+                });
+                searchDropdown.appendChild(div);
+            });
+        }
+        searchDropdown.classList.add('visible');
+    } catch (e) {
+        console.error('Search failed:', e);
+    }
+}
+
+async function jumpToResult(r) {
+    if (currentManualId !== r.manual_id) {
+        await openManual(r.manual_id);
+    }
+    renderSection(r.section_index);
+    showViewer();
+    setTimeout(() => selectCallout(r.item), 300);
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────
+function esc(s) {
+    if (!s) return '';
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+// ── Init ─────────────────────────────────────────────────────────────
+loadManuals();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+services:
+  parts-viewer:
+    build: .
+    container_name: parts-viewer
+    restart: unless-stopped
+    ports:
+      - "5051:5001"
+    volumes:
+      - viewer-data:/app/data
+      - ../models:/models:ro
+    environment:
+      - TZ=America/Chicago
+
+volumes:
+  viewer-data:
