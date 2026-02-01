@@ -47,6 +47,13 @@ PART_NUMBER_SPACED_RE = re.compile(
 )
 
 
+def _derive_model_name(filename):
+    """Derive a display-friendly model name from the PDF filename."""
+    stem = Path(filename).stem
+    stem = re.sub(r'_web$', '', stem, flags=re.IGNORECASE)
+    return stem
+
+
 class ProcessingState:
     """Thread-safe processing state tracker."""
 
@@ -184,7 +191,9 @@ def extract_section_title(page) -> Optional[str]:
     if m:
         title = m.group(1).strip()
         title = re.sub(r'\s*PAGE\s*\d+\s*', '', title, flags=re.IGNORECASE)
-        title = re.sub(r'^\d+\s*', '', title)
+        # Strip leading standalone numbers (page nums) but preserve
+        # measurements like 54" by requiring whitespace after the digits
+        title = re.sub(r'^\d+\s+', '', title)
         title = re.sub(r'\s+\d+\s*$', '', title)
         if title and len(title) > 2:
             return title
@@ -198,7 +207,9 @@ def extract_section_title(page) -> Optional[str]:
                 'INDUSTRIAL']
     for cl in compacted_lines:
         if any(kw in cl.upper() for kw in keywords):
-            title = re.sub(r'^\d+\s*', '', cl)
+            # Strip leading standalone numbers (page nums) but preserve
+            # measurements like 54" by requiring whitespace after digits
+            title = re.sub(r'^\d+\s+', '', cl)
             title = re.sub(r'\s+\d+\s*$', '', title)
             title = re.sub(r'\s*PAGE\s*\d+\s*', '', title, flags=re.IGNORECASE)
             if title and len(title) > 2:
@@ -291,13 +302,16 @@ def pair_sections(pages: list[dict],
                   state: Optional[ProcessingState] = None) -> list[dict]:
     """Group diagram + table pages into sections.
 
-    Handles multiple consecutive diagram pages that belong to the same section
-    (e.g., Podium pages 15-16-17 share table page 18).
+    Every page in the PDF becomes a section so all pages are navigable.
+    Diagram pages are paired with their following table pages for callout
+    and parts-table linking.  Non-diagram pages (cover, TOC, standalone
+    table pages, etc.) get their own section with no table pairing.
     """
     if state:
         state.update(3, "Pairing sections", 0, "Grouping diagram and table pages...")
 
     sections = []
+    consumed_tables: set[int] = set()  # table pages consumed by a diagram group
     i = 0
     total = len(pages)
 
@@ -315,6 +329,7 @@ def pair_sections(pages: list[dict],
             table_page_nums = []
             while j < total and pages[j]["type"] == "table":
                 table_page_nums.append(pages[j]["page_number"])
+                consumed_tables.add(pages[j]["page_number"])
                 j += 1
 
             # Determine section title from any page in the group
@@ -343,12 +358,34 @@ def pair_sections(pages: list[dict],
                     "image_height": dp["height"],
                     "table_pages": table_page_nums,
                     "title": dp.get("section_title", title),
+                    "page_type": "diagram",
                 }
                 sections.append(section)
 
             i = j
         else:
+            # Non-diagram page (cover, TOC, standalone table, etc.)
+            page_num = p["page_number"]
+            if p["type"] == "table" and page_num in consumed_tables:
+                # Already attached to a diagram section — skip standalone entry
+                i += 1
+                continue
+
+            title = p.get("section_title") or f"Page {page_num}"
+            section = {
+                "diagram_page": page_num,
+                "diagram_image": p["filename"],
+                "image_width": p["width"],
+                "image_height": p["height"],
+                "table_pages": [],
+                "title": title,
+                "page_type": p["type"],
+            }
+            sections.append(section)
             i += 1
+
+    # Sort sections by page number so sidebar follows PDF order
+    sections.sort(key=lambda s: s["diagram_page"])
 
     if state:
         state.update(3, "Pairing sections", 100,
@@ -388,6 +425,15 @@ def detect_callouts(sections: list[dict], pages_dir: Path,
     total = len(sections)
 
     for idx, sec in enumerate(sections):
+        # Skip YOLO on non-diagram pages (cover, TOC, standalone tables)
+        if sec.get("page_type") and sec["page_type"] != "diagram":
+            sec["raw_detections"] = []
+            if state:
+                pct = ((idx + 1) / total) * 100
+                state.update(4, "Detecting callouts (YOLO)", pct,
+                             f"Section {idx + 1}/{total}: skipped (non-diagram)")
+            continue
+
         img_path = pages_dir / sec["diagram_image"]
         results = model(str(img_path), conf=conf, verbose=False)
 
@@ -1013,6 +1059,7 @@ def process_manual(pdf_path: Path, manual_id: str, output_dir: Path,
         manifest = {
             "manual_id": manual_id,
             "filename": pdf_path.name,
+            "model_name": _derive_model_name(pdf_path.name),
             "total_pages": len(pages),
             "sections": sections,
             "processing_log": processing_log,

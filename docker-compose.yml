@@ -8,6 +8,7 @@ services:
     volumes:
       - viewer-data:/app/data
       - ../models:/models:ro
+      - ./glb_models:/app/data/glb_models:ro
     environment:
       - TZ=America/Chicago
 

@@ -3,3 +3,5 @@ __pycache__/
 *.pt
 data/
 *.pdf
+*.glb
+glb_models/

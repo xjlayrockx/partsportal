@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parts Manual Viewer - Bad Boy Mowers</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.172.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.172.0/examples/jsm/"
+        }
+    }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -232,6 +240,37 @@
             margin-bottom: 8px;
             word-break: break-word;
         }
+        .mc-name {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .mc-name h3 { margin-bottom: 0; }
+        .mc-name .mc-edit-btn {
+            background: none;
+            border: none;
+            color: var(--bb-text-muted);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 4px;
+            border-radius: 3px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .manual-card:hover .mc-edit-btn { opacity: 1; }
+        .mc-edit-btn:hover { color: var(--bb-orange); }
+        .mc-name-input {
+            background: var(--bb-dark);
+            border: 1px solid var(--bb-orange);
+            color: var(--bb-text);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            width: 100%;
+            outline: none;
+        }
         .manual-card .mc-stats {
             display: flex;
             gap: 12px;
@@ -240,6 +279,22 @@
         }
         .manual-card .mc-stats span {
             font-family: 'JetBrains Mono', monospace;
+        }
+        .mc-thumb {
+            width: 100%;
+            height: 160px;
+            overflow: hidden;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background: var(--bb-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mc-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
         .manual-card .mc-delete {
             position: absolute;
@@ -298,6 +353,48 @@
         .section-list li .sl-count {
             font-size: 10px;
             color: var(--bb-text-muted);
+        }
+        .section-list li .sl-header {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .section-list li .sl-title { flex: 1; }
+        .section-list li .sl-edit-btn {
+            background: none;
+            border: none;
+            color: var(--bb-text-muted);
+            cursor: pointer;
+            font-size: 11px;
+            padding: 0 3px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            flex-shrink: 0;
+        }
+        .section-list li:hover .sl-edit-btn { opacity: 1; }
+        .section-list li .sl-edit-btn:hover { color: var(--bb-orange); }
+        .section-list li .sl-del-btn {
+            background: none;
+            border: none;
+            color: var(--bb-text-muted);
+            cursor: pointer;
+            font-size: 13px;
+            padding: 0 3px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            flex-shrink: 0;
+        }
+        .section-list li:hover .sl-del-btn { opacity: 1; }
+        .section-list li .sl-del-btn:hover { color: var(--bb-danger); }
+        .sl-title-input {
+            background: var(--bb-dark);
+            border: 1px solid var(--bb-orange);
+            color: var(--bb-text);
+            font-size: 12px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            width: 100%;
+            outline: none;
         }
 
         /* Center: diagram */
@@ -443,6 +540,13 @@
             justify-content: center;
         }
         .zoom-btn:hover { border-color: var(--bb-orange); color: var(--bb-orange); }
+        .zoom-btn.view3d-btn {
+            width: auto;
+            padding: 0 10px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
         .zoom-level {
             background: var(--bb-black);
             border: 1px solid var(--bb-gray-light);
@@ -480,6 +584,267 @@
             height: 200px;
             color: var(--bb-text-muted);
             font-size: 13px;
+        }
+
+        /* ── 3D Viewer ─────────────────────────────── */
+        .viewer-mode-toolbar {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            display: flex;
+            gap: 2px;
+            z-index: 60;
+            background: var(--bb-black);
+            border: 1px solid var(--bb-gray-light);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .mode-btn {
+            background: none;
+            border: none;
+            color: var(--bb-text-muted);
+            padding: 6px 14px;
+            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .mode-btn:hover { color: var(--bb-text); background: var(--bb-gray); }
+        .mode-btn.active {
+            background: var(--bb-orange);
+            color: #fff;
+        }
+        .three-container {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: none;
+        }
+        .three-container.active { display: block; }
+        .three-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+        .three-toolbar {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            display: flex;
+            gap: 4px;
+            z-index: 60;
+        }
+        .three-toolbar .zoom-btn {
+            font-size: 11px;
+            width: auto;
+            padding: 0 10px;
+            white-space: nowrap;
+        }
+        .three-toolbar .zoom-btn.active-toggle {
+            background: var(--bb-orange);
+            border-color: var(--bb-orange);
+            color: #fff;
+        }
+        .three-part-info {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0,0,0,0.85);
+            border: 1px solid var(--bb-orange);
+            border-radius: 6px;
+            padding: 10px 14px;
+            z-index: 60;
+            display: none;
+            max-width: 260px;
+        }
+        .three-part-info .tpi-pn {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--bb-orange);
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .three-part-info .tpi-desc {
+            color: var(--bb-text-muted);
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        .three-part-info .tpi-count {
+            color: var(--bb-text-muted);
+            font-size: 11px;
+            margin-top: 4px;
+        }
+        .three-loading-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 70;
+        }
+        .three-loading-overlay .tl-text {
+            color: var(--bb-text);
+            font-size: 14px;
+            margin-bottom: 12px;
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 1px;
+        }
+        .three-loading-overlay .tl-bar {
+            width: 240px;
+            height: 6px;
+            background: var(--bb-gray);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .three-loading-overlay .tl-bar-fill {
+            height: 100%;
+            background: var(--bb-orange);
+            width: 0%;
+            transition: width 0.2s;
+            border-radius: 3px;
+        }
+        .three-loading-overlay .tl-pct {
+            color: var(--bb-text-muted);
+            font-size: 11px;
+            margin-top: 6px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .glb-selector {
+            display: inline-block;
+            margin-left: 8px;
+        }
+        .glb-selector select {
+            background: var(--bb-gray);
+            color: var(--bb-text);
+            border: 1px solid var(--bb-gray-light);
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Parts filter */
+        .parts-filter-wrap {
+            position: relative;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--bb-gray);
+        }
+        .parts-filter-input {
+            width: 100%;
+            padding: 6px 28px 6px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--bb-gray-light);
+            background: var(--bb-gray);
+            color: var(--bb-text);
+            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+        }
+        .parts-filter-input:focus {
+            border-color: var(--bb-orange);
+        }
+        .parts-filter-input::placeholder {
+            color: var(--bb-text-muted);
+        }
+        .parts-filter-count {
+            position: absolute;
+            right: 36px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--bb-text-muted);
+            font-size: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            pointer-events: none;
+        }
+        .parts-filter-clear {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--bb-text-muted);
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            user-select: none;
+        }
+        .parts-filter-clear:hover {
+            color: var(--bb-text);
+        }
+
+        /* Part hidden state */
+        .part-hidden {
+            opacity: 0.35;
+        }
+        .part-hidden .col-pn,
+        .part-hidden .col-desc {
+            text-decoration: line-through;
+        }
+        .part-hidden .col-desc::after {
+            content: 'HIDDEN';
+            display: inline-block;
+            margin-left: 6px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--bb-warning);
+            background: rgba(255, 152, 0, 0.12);
+            padding: 1px 5px;
+            border-radius: 3px;
+            text-decoration: none;
+            vertical-align: middle;
+        }
+
+        /* Hidden parts indicator */
+        .hidden-indicator {
+            position: absolute;
+            bottom: 50px;
+            right: 12px;
+            z-index: 60;
+            background: var(--bb-orange);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            padding: 4px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .hidden-indicator:hover {
+            background: var(--bb-orange-hover);
+        }
+
+        /* Toolbar separator */
+        .toolbar-separator {
+            display: inline-block;
+            width: 1px;
+            height: 20px;
+            background: var(--bb-gray-light);
+            align-self: center;
+            margin: 0 2px;
+        }
+
+        /* 3D mesh indicators on table rows */
+        .no-3d-mesh {
+            opacity: 0.5;
+        }
+        .no-3d-mesh .col-pn::after {
+            content: ' (no 3D)';
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            font-size: 9px;
+            color: var(--bb-text-muted);
+        }
+        .has-3d-mesh .col-pn::before {
+            content: '';
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            background: var(--bb-success);
+            border-radius: 2px;
+            margin-right: 4px;
+            vertical-align: middle;
         }
 
         /* Scrollbar */
@@ -538,7 +903,7 @@
         <!-- Viewer View -->
         <div class="viewer-view" id="viewerView">
             <!-- Left sidebar -->
-            <div class="sidebar">
+            <div class="sidebar" id="sidebarPanel">
                 <div class="sidebar-header">SECTIONS</div>
                 <ul class="section-list" id="sectionList"></ul>
                 <div class="log-panel" id="logPanel"></div>
@@ -546,21 +911,70 @@
 
             <!-- Center diagram -->
             <div class="diagram-panel" id="diagramPanel">
+                <!-- Mode toggle -->
+                <div class="viewer-mode-toolbar">
+                    <button class="mode-btn active" id="mode2dBtn" onclick="switchViewMode('2d')">2D Diagram</button>
+                    <button class="mode-btn" id="mode3dBtn" onclick="switchViewMode('3d')">3D Model</button>
+                </div>
+
+                <!-- 2D diagram container -->
                 <div class="diagram-container" id="diagramContainer">
                     <img id="diagramImg" draggable="false">
                     <svg id="calloutSvg" xmlns="http://www.w3.org/2000/svg"></svg>
                 </div>
-                <div class="zoom-controls">
+                <div class="zoom-controls" id="zoomControls2d">
+                    <button class="zoom-btn view3d-btn" onclick="viewSectionIn3D()" title="View these parts in 3D">3D &#8594;</button>
+                    <span class="toolbar-separator"></span>
                     <button class="zoom-btn" onclick="zoomIn()">+</button>
                     <div class="zoom-level" id="zoomLevel">100%</div>
                     <button class="zoom-btn" onclick="zoomOut()">&minus;</button>
                     <button class="zoom-btn" onclick="zoomFit()" title="Fit to view">&#9634;</button>
                 </div>
+
+                <!-- 3D viewer container -->
+                <div class="three-container" id="threeContainer">
+                    <!-- Part info overlay -->
+                    <div class="three-part-info" id="threePartInfo">
+                        <div class="tpi-pn"></div>
+                        <div class="tpi-desc"></div>
+                        <div class="tpi-count"></div>
+                    </div>
+                    <!-- Loading overlay -->
+                    <div class="three-loading-overlay" id="threeLoading" style="display:none;">
+                        <div class="tl-text">LOADING 3D MODEL</div>
+                        <div class="tl-bar"><div class="tl-bar-fill" id="threeLoadBar"></div></div>
+                        <div class="tl-pct" id="threeLoadPct">0%</div>
+                    </div>
+                    <!-- 3D toolbar -->
+                    <div class="three-toolbar">
+                        <button class="zoom-btn" onclick="window.resetCamera3D && window.resetCamera3D()">Reset</button>
+                        <button class="zoom-btn" id="ghostBtn" onclick="window.toggleGhostMode3D && window.toggleGhostMode3D()">Ghost</button>
+                        <button class="zoom-btn" id="explodeBtn" onclick="window.toggleExplode3D && window.toggleExplode3D()">Explode</button>
+                        <span class="toolbar-separator"></span>
+                        <button class="zoom-btn" id="hideBtn" onclick="window.hidePart3D && window.hidePart3D()">Hide</button>
+                        <button class="zoom-btn" id="isolateBtn" onclick="window.isolatePart3D && window.isolatePart3D()">Isolate</button>
+                        <button class="zoom-btn" id="showAllBtn" onclick="window.showAllParts3D && window.showAllParts3D()">Show All</button>
+                    </div>
+                    <div class="hidden-indicator" id="hiddenIndicator" style="display:none;"
+                         onclick="window.showAllParts3D && window.showAllParts3D()">
+                        Hidden: <span id="hiddenCount">0</span> parts
+                    </div>
+                </div>
             </div>
 
             <!-- Right parts table -->
             <div class="parts-panel">
-                <div class="parts-panel-header">PARTS LIST</div>
+                <div class="parts-panel-header">PARTS LIST
+                    <span class="glb-selector" id="glbSelectorWrap" style="display:none;">
+                        <select id="glbSelector" onchange="onGLBSelect(this.value)"></select>
+                    </span>
+                </div>
+                <div class="parts-filter-wrap">
+                    <input type="text" id="partsFilter" class="parts-filter-input"
+                           placeholder="Search by part number or description..." autocomplete="off">
+                    <span class="parts-filter-count" id="partsFilterCount" style="display:none;"></span>
+                    <span class="parts-filter-clear" id="partsFilterClear" style="display:none;">&times;</span>
+                </div>
                 <div class="parts-table-wrap">
                     <table class="parts-table">
                         <thead>
@@ -597,6 +1011,10 @@ let isPanning = false;
 let panStartX = 0, panStartY = 0;
 let highlightedItem = null;
 let searchTimeout = null;
+let viewMode = '2d';
+let threeInitialized = false;
+let loadedGLBFile = null;
+let glbPartNumbers = new Set();
 
 // ── Elements ─────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -716,7 +1134,11 @@ async function loadManuals() {
             const card = document.createElement('div');
             card.className = 'manual-card';
             card.innerHTML = `
-                <h3>${esc(m.filename)}</h3>
+                ${m.has_thumbnail ? `<div class="mc-thumb"><img src="/api/manual/${m.manual_id}/image/page_001.png" alt="First page" loading="lazy"></div>` : ''}
+                <div class="mc-name">
+                    <h3>${esc(m.model_name)}</h3>
+                    <button class="mc-edit-btn" title="Rename">&#9998;</button>
+                </div>
                 <div class="mc-stats">
                     <span>${m.total_pages} pages</span>
                     <span>${m.section_count} sections</span>
@@ -724,12 +1146,47 @@ async function loadManuals() {
                 </div>
                 <button class="mc-delete" onclick="event.stopPropagation(); deleteManual('${m.manual_id}')" title="Delete">&times;</button>
             `;
+            const editBtn = card.querySelector('.mc-edit-btn');
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                startRename(card, m.manual_id, m.model_name);
+            });
             card.addEventListener('click', () => openManual(m.manual_id));
             manualGrid.appendChild(card);
         });
     } catch (e) {
         console.error('Failed to load manuals:', e);
     }
+}
+
+function startRename(card, manualId, currentName) {
+    const nameDiv = card.querySelector('.mc-name');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'mc-name-input';
+    input.value = currentName;
+    nameDiv.innerHTML = '';
+    nameDiv.appendChild(input);
+    input.focus();
+    input.select();
+
+    async function save() {
+        const newName = input.value.trim();
+        if (newName && newName !== currentName) {
+            await fetch(`/api/manual/${manualId}/rename`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model_name: newName }),
+            });
+        }
+        loadManuals();
+    }
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        if (e.key === 'Escape') { input.removeEventListener('blur', save); loadManuals(); }
+    });
+    input.addEventListener('click', (e) => e.stopPropagation());
 }
 
 async function deleteManual(manualId) {
@@ -745,6 +1202,7 @@ async function openManual(manualId) {
         currentManual = await res.json();
         currentManualId = manualId;
         currentSectionIdx = 0;
+        window._currentManual = currentManual;
         buildSidebar();
         renderSection(0);
         renderLog();
@@ -758,14 +1216,99 @@ function buildSidebar() {
     sectionList.innerHTML = '';
     currentManual.sections.forEach((sec, i) => {
         const li = document.createElement('li');
-        li.textContent = sec.title;
+        const header = document.createElement('div');
+        header.className = 'sl-header';
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'sl-title';
+        titleSpan.textContent = sec.title;
+        header.appendChild(titleSpan);
+        const editBtn = document.createElement('button');
+        editBtn.className = 'sl-edit-btn';
+        editBtn.innerHTML = '&#9998;';
+        editBtn.title = 'Rename';
+        editBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            startSectionRename(li, i, sec.title);
+        });
+        header.appendChild(editBtn);
+        const delBtn = document.createElement('button');
+        delBtn.className = 'sl-del-btn';
+        delBtn.innerHTML = '&times;';
+        delBtn.title = 'Remove page';
+        delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteSection(i);
+        });
+        header.appendChild(delBtn);
+        li.appendChild(header);
+        const isDiagram = sec.page_type === 'diagram' || (!sec.page_type && (sec.callouts || []).length > 0);
         const count = document.createElement('div');
         count.className = 'sl-count';
-        count.textContent = `${(sec.callouts || []).length} callouts / ${(sec.parts_table || []).length} parts`;
+        if (isDiagram) {
+            count.textContent = `${(sec.callouts || []).length} callouts / ${(sec.parts_table || []).length} parts`;
+        } else {
+            count.textContent = `Page ${sec.diagram_page}`;
+        }
         li.appendChild(count);
         li.addEventListener('click', () => renderSection(i));
         sectionList.appendChild(li);
     });
+}
+
+async function deleteSection(sectionIdx) {
+    const sec = currentManual.sections[sectionIdx];
+    if (!confirm(`Remove "${sec.title}" from this manual?`)) return;
+    await fetch(`/api/manual/${currentManualId}/section/${sectionIdx}`, { method: 'DELETE' });
+    currentManual.sections.splice(sectionIdx, 1);
+    // Adjust current view if needed
+    if (currentManual.sections.length === 0) {
+        sectionList.innerHTML = '<li style="color:var(--bb-text-muted);padding:12px">No pages</li>';
+        return;
+    }
+    if (currentSectionIdx >= currentManual.sections.length) {
+        currentSectionIdx = currentManual.sections.length - 1;
+    }
+    buildSidebar();
+    renderSection(currentSectionIdx);
+}
+
+function startSectionRename(li, sectionIdx, currentTitle) {
+    const header = li.querySelector('.sl-header');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'sl-title-input';
+    input.value = currentTitle;
+    header.innerHTML = '';
+    header.appendChild(input);
+    input.focus();
+    input.select();
+
+    async function save() {
+        const newTitle = input.value.trim();
+        if (newTitle && newTitle !== currentTitle) {
+            await fetch(`/api/manual/${currentManualId}/section/${sectionIdx}/rename`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: newTitle }),
+            });
+            currentManual.sections[sectionIdx].title = newTitle;
+        }
+        buildSidebar();
+        // Re-highlight the active section
+        sectionList.querySelectorAll('li').forEach((el, j) => {
+            el.classList.toggle('active', j === currentSectionIdx);
+        });
+    }
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        if (e.key === 'Escape') { input.removeEventListener('blur', save); buildSidebar();
+            sectionList.querySelectorAll('li').forEach((el, j) => {
+                el.classList.toggle('active', j === currentSectionIdx);
+            });
+        }
+    });
+    input.addEventListener('click', (e) => e.stopPropagation());
 }
 
 function renderLog() {
@@ -786,6 +1329,14 @@ function renderSection(idx) {
     sectionList.querySelectorAll('li').forEach((li, i) => {
         li.classList.toggle('active', i === idx);
     });
+
+    // Clear filter input on section change
+    const filterInput = $('partsFilter');
+    if (filterInput) {
+        filterInput.value = '';
+        $('partsFilterClear').style.display = 'none';
+    }
+    if (window.setFilterMatches3D) window.setFilterMatches3D(null);
 
     // Load diagram image
     const imgUrl = `/api/manual/${currentManualId}/image/${sec.diagram_image}`;
@@ -857,25 +1408,59 @@ function renderCallouts(sec) {
     });
 }
 
+function normalizePN(pn) {
+    if (!pn) return '';
+    const m = pn.match(/\d{3}-\d{4}-\d{2}/);
+    return m ? m[0] : '';
+}
+
 function renderPartsTable(sec) {
     partsBody.innerHTML = '';
     const parts = sec.parts_table || [];
     parts.forEach(p => {
         const tr = document.createElement('tr');
         tr.setAttribute('data-item', p.item);
+        const npn = normalizePN(p.part_number);
+        if (npn) tr.setAttribute('data-part-number', npn);
+
+        // Add 3D mesh indicator classes when in 3D mode
+        if (viewMode === '3d' && npn && glbPartNumbers.size > 0) {
+            tr.classList.add(glbPartNumbers.has(npn) ? 'has-3d-mesh' : 'no-3d-mesh');
+        }
+
         tr.innerHTML = `
             <td class="col-item">${p.item}</td>
             <td class="col-qty">${p.quantity}</td>
             <td class="col-pn">${esc(p.part_number)}</td>
             <td class="col-desc">${esc(p.description)}</td>
         `;
-        tr.addEventListener('click', () => selectCallout(p.item));
+        tr.addEventListener('click', () => {
+            // Check if part is hidden
+            if (tr.classList.contains('part-hidden')) {
+                showHiddenNotice();
+                return;
+            }
+            selectCallout(p.item);
+            // If in 3D mode, select the part in the 3D scene with ghost mode
+            if (viewMode === '3d' && npn && window.selectPart3D) {
+                window.selectPart3D(npn);
+                // Auto-enable ghost mode so the rest of the model goes translucent
+                if (window.setGhostMode3D) window.setGhostMode3D(true);
+                if (glbPartNumbers.has(npn) && window.flyToMeshes3D) {
+                    window.flyToMeshes3D(npn);
+                }
+            }
+        });
         tr.addEventListener('mouseenter', () => highlightCalloutCircle(p.item, true));
         tr.addEventListener('mouseleave', () => {
             if (highlightedItem !== p.item) highlightCalloutCircle(p.item, false);
         });
         partsBody.appendChild(tr);
     });
+
+    // Re-apply hidden indicators and filter after rebuilding rows
+    applyHiddenIndicatorsToTable();
+    applyPartsFilter();
 }
 
 // ── Callout / Table Interaction ──────────────────────────────────────
@@ -1048,8 +1633,1004 @@ function esc(s) {
     return d.innerHTML;
 }
 
+// ── 3D View Mode ─────────────────────────────────────────────────────
+function viewSectionIn3D() {
+    if (!currentManual || !currentManual.sections[currentSectionIdx]) return;
+    const sec = currentManual.sections[currentSectionIdx];
+    const parts = sec.parts_table || [];
+    // Collect part numbers from the current section
+    const sectionPNs = new Set();
+    parts.forEach(p => {
+        const npn = normalizePN(p.part_number);
+        if (npn) sectionPNs.add(npn);
+    });
+    // Switch to 3D mode
+    switchViewMode('3d');
+    // Render only this section's parts in the table
+    renderPartsTable(sec);
+    // Hide everything in 3D except parts from this section
+    if (sectionPNs.size > 0 && window.isolatePartNumbers3D) {
+        // Small delay to let the 3D model finish loading/indexing
+        setTimeout(() => window.isolatePartNumbers3D(sectionPNs), 200);
+    }
+}
+
+function switchViewMode(mode) {
+    viewMode = mode;
+    const is3d = mode === '3d';
+
+    $('mode2dBtn').classList.toggle('active', !is3d);
+    $('mode3dBtn').classList.toggle('active', is3d);
+
+    // Toggle containers
+    diagramContainer.style.display = is3d ? 'none' : '';
+    $('zoomControls2d').style.display = is3d ? 'none' : '';
+    const tc = $('threeContainer');
+    tc.classList.toggle('active', is3d);
+
+    // Hide sidebar in 3D mode
+    $('sidebarPanel').style.display = is3d ? 'none' : '';
+
+    if (is3d) {
+        initAndLoad3D(tc);
+        // Show combined parts list from all sections
+        renderAllPartsTable();
+        // Start render loop
+        if (window.startRenderLoop) window.startRenderLoop();
+    } else {
+        // Stop render loop to save CPU/GPU
+        if (window.stopRenderLoop) window.stopRenderLoop();
+        // Restore current section's parts table
+        if (currentManual && currentManual.sections[currentSectionIdx]) {
+            renderPartsTable(currentManual.sections[currentSectionIdx]);
+        }
+    }
+}
+
+function renderAllPartsTable() {
+    if (!currentManual) return;
+    const seen = new Set();
+    const allParts = [];
+    currentManual.sections.forEach(sec => {
+        for (const p of (sec.parts_table || [])) {
+            const npn = normalizePN(p.part_number);
+            const key = npn || `${p.item}-${p.part_number}-${p.description}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                allParts.push(p);
+            }
+        }
+    });
+    allParts.sort((a, b) => a.item - b.item);
+    renderPartsTable({ parts_table: allParts, callouts: [] });
+}
+
+async function initAndLoad3D(container) {
+    // Wait for the module script to register window.initThreeScene
+    if (!window.initThreeScene) {
+        for (let i = 0; i < 50; i++) {
+            await new Promise(r => setTimeout(r, 100));
+            if (window.initThreeScene) break;
+        }
+    }
+    if (!window.initThreeScene) {
+        alert('3D viewer failed to load. Check your internet connection (Three.js loads from CDN).');
+        return;
+    }
+    if (!threeInitialized) {
+        window.initThreeScene(container);
+        threeInitialized = true;
+    }
+    if (!loadedGLBFile) {
+        loadAvailableModels();
+    }
+}
+
+async function loadAvailableModels() {
+    try {
+        const res = await fetch('/api/glb');
+        const files = await res.json();
+        const sel = $('glbSelector');
+        const wrap = $('glbSelectorWrap');
+        sel.innerHTML = '';
+        if (!files.length) {
+            wrap.style.display = 'none';
+            return;
+        }
+        if (files.length === 1) {
+            // Auto-load the only model
+            wrap.style.display = 'none';
+            onGLBSelect(files[0].filename);
+        } else {
+            wrap.style.display = '';
+            sel.innerHTML = '<option value="">Select model...</option>';
+            files.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.filename;
+                opt.textContent = `${f.filename} (${f.size_mb} MB)`;
+                sel.appendChild(opt);
+            });
+        }
+    } catch (e) {
+        console.error('Failed to load GLB list:', e);
+    }
+}
+
+function onGLBSelect(filename) {
+    if (!filename || loadedGLBFile === filename) return;
+    loadedGLBFile = filename;
+    if (window.loadGLBModel) {
+        window.loadGLBModel(filename);
+    }
+}
+
+// Listen for 3D events
+window.addEventListener('glb-indexed', (e) => {
+    glbPartNumbers = e.detail.partNumbers;
+    // Re-render table to show mesh indicators
+    if (viewMode === '3d') {
+        renderAllPartsTable();
+    } else if (currentManual && currentManual.sections[currentSectionIdx]) {
+        renderPartsTable(currentManual.sections[currentSectionIdx]);
+    }
+});
+
+window.addEventListener('3d-part-selected', (e) => {
+    const pn = e.detail.partNumber;
+    let firstMatch = null;
+    // Highlight matching rows in table (or clear all if pn is null)
+    partsBody.querySelectorAll('tr').forEach(tr => {
+        const rowPN = tr.getAttribute('data-part-number');
+        const match = pn && rowPN === pn;
+        tr.classList.toggle('highlighted', match);
+        if (match && !firstMatch) firstMatch = tr;
+    });
+    // Scroll to the first matching row within the scrollable parts panel
+    if (firstMatch) {
+        const wrap = firstMatch.closest('.parts-table-wrap');
+        if (wrap) {
+            const wrapRect = wrap.getBoundingClientRect();
+            const rowRect = firstMatch.getBoundingClientRect();
+            const offset = rowRect.top - wrapRect.top + wrap.scrollTop - (wrapRect.height / 2) + (rowRect.height / 2);
+            wrap.scrollTo({ top: offset, behavior: 'smooth' });
+        } else {
+            firstMatch.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+    }
+});
+
+// ── Parts Filter ─────────────────────────────────────────────────────
+let partsFilterTimeout = null;
+const partsFilterInput = $('partsFilter');
+const partsFilterClear = $('partsFilterClear');
+
+function applyPartsFilter() {
+    const filterInput = $('partsFilter');
+    if (!filterInput) return;
+    const query = filterInput.value.trim().toLowerCase();
+    const clearBtn = $('partsFilterClear');
+    const countEl = $('partsFilterCount');
+
+    if (clearBtn) clearBtn.style.display = query ? '' : 'none';
+
+    if (!query) {
+        // No filter — show all rows
+        partsBody.querySelectorAll('tr').forEach(tr => {
+            tr.style.display = '';
+        });
+        if (countEl) countEl.style.display = 'none';
+        if (window.setFilterMatches3D) window.setFilterMatches3D(null);
+        return;
+    }
+
+    const matchingPNs = new Set();
+    let matchCount = 0;
+    const totalRows = partsBody.querySelectorAll('tr').length;
+
+    partsBody.querySelectorAll('tr').forEach(tr => {
+        const pn = (tr.getAttribute('data-part-number') || '').toLowerCase();
+        const desc = (tr.querySelector('.col-desc')?.textContent || '').toLowerCase();
+        const pnCell = (tr.querySelector('.col-pn')?.textContent || '').toLowerCase();
+        const itemCell = (tr.querySelector('.col-item')?.textContent || '').toLowerCase();
+        const match = pn.includes(query) || desc.includes(query) || pnCell.includes(query) || itemCell.includes(query);
+
+        if (match) {
+            tr.style.display = '';
+            matchCount++;
+            if (tr.getAttribute('data-part-number')) {
+                matchingPNs.add(tr.getAttribute('data-part-number'));
+            }
+        } else {
+            tr.style.display = 'none';
+        }
+    });
+
+    if (countEl) {
+        countEl.textContent = `${matchCount}/${totalRows}`;
+        countEl.style.display = '';
+    }
+    if (window.setFilterMatches3D) window.setFilterMatches3D(matchingPNs);
+}
+
+if (partsFilterInput) {
+    partsFilterInput.addEventListener('input', () => {
+        clearTimeout(partsFilterTimeout);
+        partsFilterTimeout = setTimeout(applyPartsFilter, 150);
+    });
+}
+
+if (partsFilterClear) {
+    partsFilterClear.addEventListener('click', () => {
+        const filterInput = $('partsFilter');
+        if (filterInput) filterInput.value = '';
+        applyPartsFilter();
+    });
+}
+
+// ── Hidden Indicators on Table ───────────────────────────────────────
+function applyHiddenIndicatorsToTable() {
+    // Get hidden part numbers from 3D state
+    const hiddenPNs = window._hiddenPartNumbers3D || new Set();
+    partsBody.querySelectorAll('tr').forEach(tr => {
+        const pn = tr.getAttribute('data-part-number');
+        if (pn && hiddenPNs.has(pn)) {
+            tr.classList.add('part-hidden');
+        } else {
+            tr.classList.remove('part-hidden');
+        }
+    });
+}
+
+window.addEventListener('3d-hidden-changed', (e) => {
+    window._hiddenPartNumbers3D = e.detail.hiddenPartNumbers;
+    applyHiddenIndicatorsToTable();
+});
+
+// ── Hidden Part Notice ───────────────────────────────────────────────
+function showHiddenNotice() {
+    // Simple toast notification
+    let toast = document.getElementById('hiddenToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'hiddenToast';
+        toast.style.cssText = `
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+            background: var(--bb-black); border: 1px solid var(--bb-warning);
+            color: var(--bb-warning); padding: 8px 16px; border-radius: 6px;
+            font-size: 12px; font-family: 'Inter', sans-serif; z-index: 500;
+            pointer-events: none; opacity: 0; transition: opacity 0.3s;
+        `;
+        document.body.appendChild(toast);
+    }
+    toast.textContent = 'Part is hidden — click Show All to restore';
+    toast.style.opacity = '1';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+}
+
+// ── 3D Reset Event ───────────────────────────────────────────────────
+window.addEventListener('3d-reset', () => {
+    const filterInput = $('partsFilter');
+    if (filterInput) {
+        filterInput.value = '';
+        $('partsFilterClear').style.display = 'none';
+    }
+    window._hiddenPartNumbers3D = new Set();
+    applyHiddenIndicatorsToTable();
+    if (window.setFilterMatches3D) window.setFilterMatches3D(null);
+});
+
 // ── Init ─────────────────────────────────────────────────────────────
 loadManuals();
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+let renderer, scene, camera, controls;
+let currentModel = null;
+let partIndex = {};        // { partNumber: [mesh, ...] }
+let originalMaterials = new Map();  // mesh -> original material (cloned at load)
+let originalPositions = new Map();  // mesh -> Vector3
+let meshToPn = new Map();  // mesh -> partNumber (cached, built once at load)
+let selectedPartNumber = null;
+let ghostModeOn = false;
+let explodeModeOn = false;
+let hideModeOn = false;
+let animationId = null;
+let hiddenPartNumbers = new Set();
+let hiddenMeshes = new Set();     // for meshes with no PN (direct hide)
+let hoveredPN = null;             // currently hovered part number
+let filterMatchPNs = null;  // null = no filter; Set = active filter matches
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+// ── Init ─────────────────────────────────────────────────────────────
+function initThreeScene(container) {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0d0d0d);
+
+    camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.01, 1000);
+    camera.position.set(3, 2, 3);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    container.insertBefore(renderer.domElement, container.firstChild);
+
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.minDistance = 0.1;
+    controls.maxDistance = 50;
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
+    dirLight1.position.set(5, 10, 7);
+    scene.add(dirLight1);
+    const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+    dirLight2.position.set(-5, 5, -5);
+    scene.add(dirLight2);
+
+    // Grid helper
+    const grid = new THREE.GridHelper(10, 20, 0x333333, 0x222222);
+    scene.add(grid);
+
+    // Resize observer
+    const ro = new ResizeObserver(() => {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        if (w === 0 || h === 0) return;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+    });
+    ro.observe(container);
+
+    // Drag detection — suppress click after orbit/pan
+    let pointerDownPos = null;
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+        pointerDownPos = { x: e.clientX, y: e.clientY };
+    });
+    renderer.domElement.addEventListener('click', (e) => {
+        if (pointerDownPos) {
+            const dx = e.clientX - pointerDownPos.x;
+            const dy = e.clientY - pointerDownPos.y;
+            // If mouse moved more than 4px, it was a drag — skip selection
+            if (dx * dx + dy * dy > 16) return;
+        }
+        onCanvasClick(e);
+    });
+    renderer.domElement.addEventListener('dblclick', (e) => {
+        if (pointerDownPos) {
+            const dx = e.clientX - pointerDownPos.x;
+            const dy = e.clientY - pointerDownPos.y;
+            if (dx * dx + dy * dy > 16) return;
+        }
+        onCanvasDblClick(e);
+    });
+
+    // Hover highlight
+    renderer.domElement.addEventListener('pointermove', onCanvasHover);
+
+    // Render loop — started/stopped by switchViewMode
+    startRenderLoop();
+}
+
+function startRenderLoop() {
+    if (animationId) return; // already running
+    function animate() {
+        animationId = requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+    animate();
+}
+
+function stopRenderLoop() {
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+    }
+}
+
+// ── Resource Disposal ─────────────────────────────────────────────────
+function disposeMaterial(mat) {
+    if (!mat) return;
+    // Dispose all texture maps
+    const texProps = ['map', 'normalMap', 'roughnessMap', 'metalnessMap',
+                      'aoMap', 'emissiveMap', 'envMap', 'alphaMap',
+                      'lightMap', 'bumpMap', 'displacementMap'];
+    for (const prop of texProps) {
+        if (mat[prop]) {
+            mat[prop].dispose();
+        }
+    }
+    mat.dispose();
+}
+
+// ── Load GLB ─────────────────────────────────────────────────────────
+function loadGLBModel(filename) {
+    const loadingOverlay = document.getElementById('threeLoading');
+    const loadBar = document.getElementById('threeLoadBar');
+    const loadPct = document.getElementById('threeLoadPct');
+
+    // Remove previous model and free GPU resources
+    if (currentModel) {
+        currentModel.traverse((node) => {
+            if (node.isMesh) {
+                if (node.geometry) node.geometry.dispose();
+                if (node.material) {
+                    if (Array.isArray(node.material)) {
+                        node.material.forEach(m => disposeMaterial(m));
+                    } else {
+                        disposeMaterial(node.material);
+                    }
+                }
+            }
+        });
+        scene.remove(currentModel);
+        currentModel = null;
+    }
+    partIndex = {};
+    originalMaterials.clear();
+    originalPositions.clear();
+    meshToPn.clear();
+    selectedPartNumber = null;
+    hoveredPN = null;
+    ghostModeOn = false;
+    explodeModeOn = false;
+    hideModeOn = false;
+    hiddenPartNumbers.clear();
+    hiddenMeshes.clear();
+    filterMatchPNs = null;
+    updateToggleButtons();
+    updateHiddenIndicator();
+
+    loadingOverlay.style.display = '';
+    loadBar.style.width = '0%';
+    loadPct.textContent = '0%';
+
+    const loader = new GLTFLoader();
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('https://unpkg.com/three@0.172.0/examples/jsm/libs/draco/');
+    loader.setDRACOLoader(dracoLoader);
+    loader.load(
+        `/api/glb/${encodeURIComponent(filename)}`,
+        (gltf) => {
+            currentModel = gltf.scene;
+            scene.add(currentModel);
+            buildPartIndex(currentModel);
+            fitCameraToModel();
+            loadingOverlay.style.display = 'none';
+
+            // Dispatch event with indexed part numbers
+            const pnSet = new Set(Object.keys(partIndex));
+            window.dispatchEvent(new CustomEvent('glb-indexed', {
+                detail: { partNumbers: pnSet }
+            }));
+        },
+        (progress) => {
+            if (progress.total > 0) {
+                const pct = Math.round((progress.loaded / progress.total) * 100);
+                loadBar.style.width = pct + '%';
+                loadPct.textContent = pct + '%';
+            }
+        },
+        (error) => {
+            console.error('GLB load error:', error);
+            loadingOverlay.style.display = 'none';
+            alert('Failed to load 3D model.');
+        }
+    );
+}
+
+// ── Build Part Index ─────────────────────────────────────────────────
+function buildPartIndex(root) {
+    const pnRegex = /(\d{3}-\d{4}-\d{2})/;
+    root.traverse((node) => {
+        if (node.isMesh) {
+            // Resolve PN: check mesh name first, then walk up parents
+            let pn = null;
+            let check = node;
+            while (check) {
+                if (check.name) {
+                    const m = check.name.match(pnRegex);
+                    if (m) { pn = m[1]; break; }
+                }
+                check = check.parent;
+            }
+
+            if (pn) {
+                if (!partIndex[pn]) partIndex[pn] = [];
+                partIndex[pn].push(node);
+                meshToPn.set(node, pn);
+            }
+
+            // Clone material so each mesh has its own instance we can mutate in-place.
+            // Store the original colors/properties for reset.
+            if (node.material) {
+                const cloned = node.material.clone();
+                node.material = cloned;
+                originalMaterials.set(node, {
+                    colorHex: cloned.color ? cloned.color.getHex() : 0xffffff,
+                    emissiveHex: cloned.emissive ? cloned.emissive.getHex() : 0,
+                    emissiveIntensity: cloned.emissiveIntensity || 0,
+                    transparent: cloned.transparent,
+                    opacity: cloned.opacity,
+                    depthWrite: cloned.depthWrite,
+                });
+            }
+            // Store original position for explode
+            originalPositions.set(node, node.position.clone());
+        }
+    });
+    console.log(`[3D] Indexed ${Object.keys(partIndex).length} part numbers, ${originalMaterials.size} meshes`);
+}
+
+// ── Canvas Click → Raycaster ─────────────────────────────────────────
+function raycastAtEvent(event) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const all = raycaster.intersectObjects(currentModel ? currentModel.children : [], true);
+    // Filter out hidden meshes so clicks pass through to parts underneath
+    return all.filter(hit => hit.object.visible);
+}
+
+function onCanvasHover(event) {
+    if (!currentModel) return;
+    const intersects = raycastAtEvent(event);
+    let newHoverPN = null;
+    if (intersects.length > 0) {
+        newHoverPN = extractPartNumber(intersects[0].object);
+    }
+    if (newHoverPN === hoveredPN) return;
+    hoveredPN = newHoverPN;
+    applyAllMaterials();
+}
+
+function onCanvasClick(event) {
+    const intersects = raycastAtEvent(event);
+    if (intersects.length > 0) {
+        const hitMesh = intersects[0].object;
+        const pn = extractPartNumber(hitMesh);
+        if (hideModeOn) {
+            // Hide mode: clicking a part hides it immediately
+            if (pn) {
+                hiddenPartNumbers.add(pn);
+            } else {
+                // No PN — hide this mesh and its siblings directly
+                hideMeshGroup(hitMesh);
+            }
+            hoveredPN = null;
+            applyAllMaterials();
+            updateHiddenIndicator();
+            window.dispatchEvent(new CustomEvent('3d-hidden-changed', {
+                detail: { hiddenPartNumbers: new Set(hiddenPartNumbers) }
+            }));
+        } else {
+            if (pn) selectPart3D(pn);
+        }
+    } else if (!hideModeOn) {
+        clearSelection3D();
+    }
+}
+
+function onCanvasDblClick(event) {
+    const intersects = raycastAtEvent(event);
+    if (intersects.length > 0) {
+        const pn = extractPartNumber(intersects[0].object);
+        if (pn) isolatePart(pn);
+    }
+}
+
+// Hide all meshes under the same parent group (for parts with no PN)
+function hideMeshGroup(mesh) {
+    const parent = mesh.parent;
+    if (parent) {
+        parent.traverse((node) => {
+            if (node.isMesh) hiddenMeshes.add(node);
+        });
+    } else {
+        hiddenMeshes.add(mesh);
+    }
+}
+
+function extractPartNumber(mesh) {
+    const pnRegex = /(\d{3}-\d{4}-\d{2})/;
+    // Walk up to find a named node with a part number
+    let node = mesh;
+    while (node) {
+        if (node.name) {
+            const m = node.name.match(pnRegex);
+            if (m) return m[1];
+        }
+        node = node.parent;
+    }
+    return null;
+}
+
+// ── Select / Highlight Part ──────────────────────────────────────────
+function selectPart3D(partNumber) {
+    selectedPartNumber = partNumber;
+    applyAllMaterials();
+    updateToggleButtons();
+    showPartInfo(partNumber);
+
+    // Dispatch event to table
+    window.dispatchEvent(new CustomEvent('3d-part-selected', {
+        detail: { partNumber }
+    }));
+}
+
+function clearSelection3D() {
+    selectedPartNumber = null;
+    applyAllMaterials();
+    updateToggleButtons();
+    hidePartInfo();
+
+    // Clear table highlight
+    window.dispatchEvent(new CustomEvent('3d-part-selected', {
+        detail: { partNumber: null }
+    }));
+}
+
+// ── Central Material Resolver ────────────────────────────────────────
+function applyAllMaterials() {
+    const selectedMeshes = selectedPartNumber ? new Set(partIndex[selectedPartNumber] || []) : new Set();
+    const hoveredMeshes = (hoveredPN && hoveredPN !== selectedPartNumber)
+        ? new Set(partIndex[hoveredPN] || []) : new Set();
+
+    originalMaterials.forEach((orig, mesh) => {
+        const pn = meshToPn.get(mesh);
+        const mat = mesh.material;
+        if (!mat) return;
+
+        // Priority 1: Hidden (by PN or directly)
+        if ((pn && hiddenPartNumbers.has(pn)) || hiddenMeshes.has(mesh)) {
+            mesh.visible = false;
+            return;
+        }
+        mesh.visible = true;
+
+        // Determine target state for this mesh
+        let colorHex = orig.colorHex;
+        let emissiveHex = orig.emissiveHex;
+        let emissiveIntensity = orig.emissiveIntensity;
+        let transparent = orig.transparent;
+        let opacity = orig.opacity;
+
+        if (selectedMeshes.has(mesh)) {
+            // Priority 2: Selected — bright cyan
+            colorHex = 0x00e5ff;
+            emissiveHex = 0x00e5ff;
+            emissiveIntensity = 0.6;
+        } else if (hoveredMeshes.has(mesh)) {
+            // Priority 3: Hovered — soft cyan glow
+            emissiveHex = 0x00e5ff;
+            emissiveIntensity = 0.3;
+        } else if (filterMatchPNs !== null && pn && !filterMatchPNs.has(pn)) {
+            // Priority 4: Filtered out — ghost
+            transparent = true;
+            opacity = 0.1;
+        } else if (filterMatchPNs !== null && pn && filterMatchPNs.has(pn)) {
+            // Priority 5: Filter match — subtle glow
+            emissiveHex = 0x444444;
+            emissiveIntensity = 0.3;
+        } else if (ghostModeOn && selectedPartNumber && !selectedMeshes.has(mesh)) {
+            // Priority 6: Ghost mode — fade non-selected
+            transparent = true;
+            opacity = 0.1;
+        }
+        // Priority 7: Normal — uses orig defaults from above
+
+        // Apply in-place (no cloning)
+        // Color works on ALL material types (MeshBasicMaterial, MeshStandardMaterial, etc.)
+        if (mat.color) {
+            mat.color.setHex(colorHex);
+        }
+        if (mat.emissive) {
+            mat.emissive.setHex(emissiveHex);
+            mat.emissiveIntensity = emissiveIntensity;
+        }
+
+        const wasTransparent = mat.transparent;
+        mat.transparent = transparent;
+        mat.opacity = opacity;
+        mat.depthWrite = !transparent;
+
+        // Recompile shader if transparency state changed
+        if (wasTransparent !== transparent) {
+            mat.needsUpdate = true;
+        }
+    });
+}
+
+// ── Hide / Isolate / Show All ────────────────────────────────────────
+function toggleHideMode() {
+    hideModeOn = !hideModeOn;
+    updateToggleButtons();
+    // Clear selection when entering hide mode so clicks go straight to hiding
+    if (hideModeOn) {
+        clearSelection3D();
+    }
+}
+
+function isolatePart(pn) {
+    const targetPN = pn || selectedPartNumber;
+    if (!targetPN) return;
+
+    // Hide everything except target
+    hiddenPartNumbers.clear();
+    for (const partNum of Object.keys(partIndex)) {
+        if (partNum !== targetPN) {
+            hiddenPartNumbers.add(partNum);
+        }
+    }
+    selectedPartNumber = targetPN;
+    applyAllMaterials();
+    showPartInfo(targetPN);
+    updateHiddenIndicator();
+    window.dispatchEvent(new CustomEvent('3d-hidden-changed', {
+        detail: { hiddenPartNumbers: new Set(hiddenPartNumbers) }
+    }));
+    window.dispatchEvent(new CustomEvent('3d-part-selected', {
+        detail: { partNumber: targetPN }
+    }));
+}
+
+function isolatePartNumbers(keepPNs) {
+    // Hide every part NOT in the given Set
+    hiddenPartNumbers.clear();
+    hiddenMeshes.clear();
+    for (const partNum of Object.keys(partIndex)) {
+        if (!keepPNs.has(partNum)) {
+            hiddenPartNumbers.add(partNum);
+        }
+    }
+    // Also hide meshes with no part number
+    originalMaterials.forEach((orig, mesh) => {
+        const pn = meshToPn.get(mesh);
+        if (!pn) {
+            hiddenMeshes.add(mesh);
+        }
+    });
+    applyAllMaterials();
+    updateHiddenIndicator();
+    window.dispatchEvent(new CustomEvent('3d-hidden-changed', {
+        detail: { hiddenPartNumbers: new Set(hiddenPartNumbers) }
+    }));
+}
+
+function showAllParts() {
+    hiddenPartNumbers.clear();
+    hiddenMeshes.clear();
+    applyAllMaterials();
+    updateHiddenIndicator();
+    window.dispatchEvent(new CustomEvent('3d-hidden-changed', {
+        detail: { hiddenPartNumbers: new Set(hiddenPartNumbers) }
+    }));
+}
+
+function setFilterMatches(matchingPNs) {
+    filterMatchPNs = matchingPNs;
+    applyAllMaterials();
+}
+
+function updateHiddenIndicator() {
+    const indicator = document.getElementById('hiddenIndicator');
+    const countEl = document.getElementById('hiddenCount');
+    if (!indicator || !countEl) return;
+    const count = hiddenPartNumbers.size + (hiddenMeshes.size > 0 ? 1 : 0);
+    indicator.style.display = count > 0 ? '' : 'none';
+    countEl.textContent = count;
+}
+
+// ── Part Info Overlay ────────────────────────────────────────────────
+function showPartInfo(pn) {
+    const info = document.getElementById('threePartInfo');
+    const meshes = partIndex[pn];
+    info.querySelector('.tpi-pn').textContent = pn;
+
+    // Try to find description from manual
+    let desc = '';
+    const manual = window._currentManual;
+    if (manual) {
+        for (const sec of manual.sections || []) {
+            for (const p of sec.parts_table || []) {
+                const npn = p.part_number.match(/\d{3}-\d{4}-\d{2}/);
+                if (npn && npn[0] === pn) {
+                    desc = p.description;
+                    break;
+                }
+            }
+            if (desc) break;
+        }
+    }
+    info.querySelector('.tpi-desc').textContent = desc || '';
+    info.querySelector('.tpi-count').textContent = meshes ?
+        `${meshes.length} instance${meshes.length > 1 ? 's' : ''} in model` : '';
+    info.style.display = 'block';
+}
+
+function hidePartInfo() {
+    document.getElementById('threePartInfo').style.display = 'none';
+}
+
+// ── Fly Camera to Meshes ─────────────────────────────────────────────
+function flyToMeshes(partNumber) {
+    const meshes = partIndex[partNumber];
+    if (!meshes || !meshes.length) return;
+
+    selectPart3D(partNumber);
+
+    // Compute bounding box of all instances
+    const box = new THREE.Box3();
+    meshes.forEach(m => {
+        const b = new THREE.Box3().setFromObject(m);
+        box.union(b);
+    });
+
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z, 0.5);
+    const distance = maxDim * 2.5;
+
+    // Animate camera
+    const startPos = camera.position.clone();
+    const startTarget = controls.target.clone();
+    const endPos = new THREE.Vector3(
+        center.x + distance * 0.6,
+        center.y + distance * 0.4,
+        center.z + distance * 0.6
+    );
+    const endTarget = center.clone();
+
+    const duration = 600;
+    const startTime = performance.now();
+
+    function animateFly(now) {
+        const t = Math.min((now - startTime) / duration, 1);
+        const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // ease in-out quad
+        camera.position.lerpVectors(startPos, endPos, ease);
+        controls.target.lerpVectors(startTarget, endTarget, ease);
+        controls.update();
+        if (t < 1) requestAnimationFrame(animateFly);
+    }
+    requestAnimationFrame(animateFly);
+}
+
+// ── Fit Camera to Model ──────────────────────────────────────────────
+function fitCameraToModel() {
+    if (!currentModel) return;
+    const box = new THREE.Box3().setFromObject(currentModel);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const distance = maxDim * 1.5;
+
+    camera.position.set(center.x + distance, center.y + distance * 0.6, center.z + distance);
+    controls.target.copy(center);
+    controls.update();
+}
+
+// ── Reset Camera ─────────────────────────────────────────────────────
+function resetCamera() {
+    selectedPartNumber = null;
+    hoveredPN = null;
+    ghostModeOn = false;
+    explodeModeOn = false;
+    hideModeOn = false;
+    hiddenPartNumbers.clear();
+    hiddenMeshes.clear();
+    filterMatchPNs = null;
+    updateToggleButtons();
+    updateHiddenIndicator();
+    resetExplode();
+    applyAllMaterials();
+    hidePartInfo();
+    fitCameraToModel();
+
+    window.dispatchEvent(new CustomEvent('3d-hidden-changed', {
+        detail: { hiddenPartNumbers: new Set() }
+    }));
+    window.dispatchEvent(new Event('3d-reset'));
+}
+
+// ── Ghost Mode ───────────────────────────────────────────────────────
+function toggleGhostMode() {
+    ghostModeOn = !ghostModeOn;
+    updateToggleButtons();
+    applyAllMaterials();
+}
+
+function setGhostMode(on) {
+    ghostModeOn = on;
+    updateToggleButtons();
+    applyAllMaterials();
+}
+
+// ── Explode Mode ─────────────────────────────────────────────────────
+function toggleExplode() {
+    explodeModeOn = !explodeModeOn;
+    updateToggleButtons();
+    if (explodeModeOn) {
+        applyExplode();
+    } else {
+        resetExplode();
+    }
+}
+
+function applyExplode() {
+    if (!currentModel) return;
+    const box = new THREE.Box3().setFromObject(currentModel);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const factor = Math.max(size.x, size.y, size.z) * 0.3;
+
+    originalPositions.forEach((origPos, mesh) => {
+        // Get world position of original
+        const worldPos = new THREE.Vector3();
+        mesh.getWorldPosition(worldPos);
+        const dir = worldPos.sub(center).normalize();
+        mesh.position.copy(origPos.clone().add(dir.multiplyScalar(factor)));
+    });
+}
+
+function resetExplode() {
+    originalPositions.forEach((origPos, mesh) => {
+        mesh.position.copy(origPos);
+    });
+}
+
+function updateToggleButtons() {
+    const ghostBtn = document.getElementById('ghostBtn');
+    const explodeBtn = document.getElementById('explodeBtn');
+    const hideBtn = document.getElementById('hideBtn');
+    const isolateBtn = document.getElementById('isolateBtn');
+    if (ghostBtn) ghostBtn.classList.toggle('active-toggle', ghostModeOn);
+    if (explodeBtn) explodeBtn.classList.toggle('active-toggle', explodeModeOn);
+    if (hideBtn) hideBtn.classList.toggle('active-toggle', hideModeOn);
+    const hasSelection = !!selectedPartNumber;
+    if (isolateBtn) isolateBtn.style.opacity = hasSelection ? '1' : '0.4';
+    // Change cursor to crosshair in hide mode
+    if (renderer && renderer.domElement) {
+        renderer.domElement.style.cursor = hideModeOn ? 'crosshair' : '';
+    }
+}
+
+// ── Expose to window ─────────────────────────────────────────────────
+window.initThreeScene = initThreeScene;
+window.loadGLBModel = loadGLBModel;
+window.flyToMeshes3D = flyToMeshes;
+window.selectPart3D = selectPart3D;
+window.clearSelection3D = clearSelection3D;
+window.resetCamera3D = resetCamera;
+window.toggleGhostMode3D = toggleGhostMode;
+window.toggleExplode3D = toggleExplode;
+window.hidePart3D = toggleHideMode;
+window.isolatePart3D = isolatePart;
+window.showAllParts3D = showAllParts;
+window.setFilterMatches3D = setFilterMatches;
+window.setGhostMode3D = setGhostMode;
+window.isolatePartNumbers3D = isolatePartNumbers;
+window.startRenderLoop = startRenderLoop;
+window.stopRenderLoop = stopRenderLoop;
 </script>
 </body>
 </html>
